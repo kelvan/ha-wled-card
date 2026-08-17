@@ -1,5 +1,11 @@
 # WLED Card
 
+> **⚠️ Vibe-coded warning:** This project was written by Claude (Anthropic's
+> AI) with human review of behavior, not a full manual code audit. It works
+> against a real WLED device in testing, but treat it as unaudited
+> third-party code: read it before you trust it, expect rough edges, and use
+> it at your own risk.
+
 A Lovelace card for Home Assistant that gives you full control over a
 [WLED](https://kno.wled.ge/) device set up via the core `wled` integration:
 per-segment power, brightness, color (plus a white channel slider on
