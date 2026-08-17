@@ -2,8 +2,9 @@
 
 A Lovelace card for Home Assistant that gives you full control over a
 [WLED](https://kno.wled.ge/) device set up via the core `wled` integration:
-per-segment power, brightness, color, effects (with speed/intensity
-variables), color palettes, reverse/freeze, presets, playlists, live
+per-segment power, brightness, color (plus a white channel slider on
+RGBW segments), effects (with speed/intensity variables), color
+palettes, reverse/freeze, presets, playlists, live
 override, nightlight, and sync send/receive. Every section can be shown or
 hidden from the card editor.
 

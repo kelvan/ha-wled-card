@@ -147,7 +147,8 @@ export class HaWledCard extends LitElement {
     const brightness = state.attributes.brightness ?? 0;
     const effectList: string[] = state.attributes.effect_list ?? [];
     const currentEffect: string = state.attributes.effect ?? "";
-    const rgb: number[] | undefined = state.attributes.rgb_color;
+    const rgbw: number[] | undefined = state.attributes.rgbw_color;
+    const rgb: number[] | undefined = rgbw ?? state.attributes.rgb_color;
 
     return html`
       <div class="segment-panel">
@@ -175,12 +176,26 @@ export class HaWledCard extends LitElement {
                 <input
                   type="color"
                   .value=${rgbToHex(rgb)}
-                  @change=${(e: Event) => this._setColor(seg.light, e)}
+                  @change=${(e: Event) => this._setColor(seg.light, rgbw, e)}
                   class="color-input"
                 />
               `
             : nothing}
         </div>
+        ${this._config.show_color !== false && rgbw
+          ? html`
+              <div class="field">
+                <label>White <span class="value">${rgbw[3] ?? 0}</span></label>
+                <input
+                  type="range"
+                  min="0"
+                  max="255"
+                  .value=${String(rgbw[3] ?? 0)}
+                  @change=${(e: Event) => this._setWhite(seg.light, rgbw, e)}
+                />
+              </div>
+            `
+          : nothing}
 
         ${this._config.show_effects !== false && effectList.length
           ? html`
@@ -296,9 +311,20 @@ export class HaWledCard extends LitElement {
     this.hass.callService("light", "turn_on", { entity_id: entityId, brightness: value });
   }
 
-  private _setColor(entityId: string, e: Event): void {
+  private _setColor(entityId: string, currentRgbw: number[] | undefined, e: Event): void {
     const hex = (e.target as HTMLInputElement).value;
-    this.hass.callService("light", "turn_on", { entity_id: entityId, rgb_color: hexToRgb(hex) });
+    const [r, g, b] = hexToRgb(hex);
+    if (currentRgbw) {
+      this.hass.callService("light", "turn_on", { entity_id: entityId, rgbw_color: [r, g, b, currentRgbw[3] ?? 0] });
+    } else {
+      this.hass.callService("light", "turn_on", { entity_id: entityId, rgb_color: [r, g, b] });
+    }
+  }
+
+  private _setWhite(entityId: string, currentRgbw: number[], e: Event): void {
+    const white = Number((e.target as HTMLInputElement).value);
+    const [r, g, b] = currentRgbw;
+    this.hass.callService("light", "turn_on", { entity_id: entityId, rgbw_color: [r, g, b, white] });
   }
 
   private _setEffect(entityId: string, e: Event): void {
