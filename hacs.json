@@ -1,0 +1,6 @@
+{
+  "name": "WLED Card",
+  "filename": "ha-wled-card.js",
+  "content_in_root": false,
+  "render_readme": true
+}
