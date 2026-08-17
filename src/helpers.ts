@@ -4,6 +4,7 @@ interface EntityRegistryEntry {
   entity_id: string;
   device_id?: string;
   platform?: string;
+  translation_key?: string;
 }
 
 /** hass.entities is present on modern frontends but not in the published
@@ -28,18 +29,27 @@ export function wledDeviceOptions(hass: Hass): { id: string; name: string }[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-const SEGMENT_LIGHT_RE = /_segment_(\d+)$/;
-const SEGMENT_PALETTE_RE = /_segment_(\d+)_color_palette$/;
-const SEGMENT_SPEED_RE = /_segment_(\d+)_speed$/;
-const SEGMENT_INTENSITY_RE = /_segment_(\d+)_intensity$/;
-const SEGMENT_REVERSE_RE = /_segment_(\d+)_reverse$/;
-const SEGMENT_MIRROR_RE = /_segment_(\d+)_mirror$/;
+/**
+ * Segment number placeholders (e.g. "Segment {segment} speed") are
+ * substituted with a plain decimal number regardless of UI language, so we
+ * can recover the segment index from the localized friendly_name once the
+ * device-name prefix is stripped off. translation_key itself is never
+ * localized, so it is what we use to classify *what* an entity is.
+ */
+function segmentIndexFromName(friendlyName: string | undefined, deviceName: string): number {
+  if (!friendlyName) return 0;
+  const remainder = friendlyName.startsWith(deviceName) ? friendlyName.slice(deviceName.length) : friendlyName;
+  const match = remainder.match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
 
 /**
- * Groups a WLED device's entities into the shape the card renders.
- * Relies on the entity_id suffix conventions produced by the core WLED
- * integration (e.g. "_segment_1_speed", "_preset", "_nightlight") since
- * unique_id is not exposed on the frontend entity registry.
+ * Groups a WLED device's entities into the shape the card renders, based on
+ * the core WLED integration's entity translation_key conventions (see
+ * homeassistant/components/wled/{light,number,select,switch}.py). Segment 0
+ * is special-cased throughout the integration: it uses the unprefixed
+ * translation_key (e.g. "speed" instead of "segment_speed") and, for the
+ * light entity, no entity name at all.
  */
 export function discoverWledEntities(hass: Hass, deviceId: string): WledEntities {
   const registry = entityRegistry(hass);
@@ -62,54 +72,49 @@ export function discoverWledEntities(hass: Hass, deviceId: string): WledEntities
     return seg;
   };
 
+  const segmentIndexOf = (entityId: string): number =>
+    segmentIndexFromName(hass.states[entityId]?.attributes.friendly_name, result.deviceName);
+
   for (const [entityId, entry] of Object.entries(registry)) {
     if (entry.device_id !== deviceId) continue;
     const domain = entityId.split(".")[0];
+    const key = entry.translation_key;
 
     if (domain === "light") {
-      const segMatch = entityId.match(SEGMENT_LIGHT_RE);
-      if (segMatch) {
-        getSegment(Number(segMatch[1])).light = entityId;
-      } else {
-        result.main = entityId;
-      }
-      continue;
-    }
-
-    if (domain === "select") {
-      const paletteMatch = entityId.match(SEGMENT_PALETTE_RE);
-      if (paletteMatch) {
-        getSegment(Number(paletteMatch[1])).palette = entityId;
-      } else if (entityId.endsWith("_preset")) {
-        result.preset = entityId;
-      } else if (entityId.endsWith("_playlist")) {
-        result.playlist = entityId;
-      } else if (entityId.endsWith("_live_override")) {
-        result.liveOverride = entityId;
-      }
+      if (key === "main") result.main = entityId;
+      else if (key === "segment") getSegment(segmentIndexOf(entityId)).light = entityId;
       continue;
     }
 
     if (domain === "number") {
-      const speedMatch = entityId.match(SEGMENT_SPEED_RE);
-      const intensityMatch = entityId.match(SEGMENT_INTENSITY_RE);
-      if (speedMatch) getSegment(Number(speedMatch[1])).speed = entityId;
-      else if (intensityMatch) getSegment(Number(intensityMatch[1])).intensity = entityId;
+      if (key === "speed") getSegment(0).speed = entityId;
+      else if (key === "segment_speed") getSegment(segmentIndexOf(entityId)).speed = entityId;
+      else if (key === "intensity") getSegment(0).intensity = entityId;
+      else if (key === "segment_intensity") getSegment(segmentIndexOf(entityId)).intensity = entityId;
+      continue;
+    }
+
+    if (domain === "select") {
+      if (key === "preset") result.preset = entityId;
+      else if (key === "playlist") result.playlist = entityId;
+      else if (key === "live_override") result.liveOverride = entityId;
+      else if (key === "color_palette") getSegment(0).palette = entityId;
+      else if (key === "segment_color_palette") getSegment(segmentIndexOf(entityId)).palette = entityId;
       continue;
     }
 
     if (domain === "switch") {
-      const reverseMatch = entityId.match(SEGMENT_REVERSE_RE);
-      const mirrorMatch = entityId.match(SEGMENT_MIRROR_RE);
-      if (reverseMatch) getSegment(Number(reverseMatch[1])).reverse = entityId;
-      else if (mirrorMatch) getSegment(Number(mirrorMatch[1])).mirror = entityId;
-      else if (entityId.endsWith("_nightlight")) result.nightlight = entityId;
-      else if (entityId.endsWith("_sync_send")) result.syncSend = entityId;
-      else if (entityId.endsWith("_sync_receive")) result.syncReceive = entityId;
+      if (key === "nightlight") result.nightlight = entityId;
+      else if (key === "sync_send") result.syncSend = entityId;
+      else if (key === "sync_receive") result.syncReceive = entityId;
+      else if (key === "reverse") getSegment(0).reverse = entityId;
+      else if (key === "segment_reverse") getSegment(segmentIndexOf(entityId)).reverse = entityId;
+      else if (key === "freeze") getSegment(0).freeze = entityId;
+      else if (key === "segment_freeze") getSegment(segmentIndexOf(entityId)).freeze = entityId;
       continue;
     }
 
-    if (domain === "button" && entityId.endsWith("_restart")) {
+    if (domain === "button") {
       result.restart = entityId;
       continue;
     }
@@ -122,6 +127,12 @@ export function discoverWledEntities(hass: Hass, deviceId: string): WledEntities
   result.segments = [...segmentMap.values()]
     .filter((seg) => seg.light)
     .sort((a, b) => a.index - b.index);
+
+  // With only one segment, WLED skips the separate master light entity and
+  // uses segment 0's own light as the main control.
+  if (!result.main) {
+    result.main = result.segments.find((seg) => seg.index === 0)?.light;
+  }
 
   return result;
 }

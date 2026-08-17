@@ -195,11 +195,11 @@ export class HaWledCard extends LitElement {
         ${this._config.show_effect_controls !== false ? this._renderNumberSlider("Speed", seg.speed) : nothing}
         ${this._config.show_effect_controls !== false ? this._renderNumberSlider("Intensity", seg.intensity) : nothing}
         ${this._config.show_palette !== false ? this._renderSelect("Palette", seg.palette) : nothing}
-        ${this._config.show_reverse_mirror !== false
+        ${this._config.show_reverse_freeze !== false
           ? html`
               <div class="row switches">
                 ${seg.reverse ? this._renderSwitch("Reverse", seg.reverse) : nothing}
-                ${seg.mirror ? this._renderSwitch("Mirror", seg.mirror) : nothing}
+                ${seg.freeze ? this._renderSwitch("Freeze", seg.freeze) : nothing}
               </div>
             `
           : nothing}

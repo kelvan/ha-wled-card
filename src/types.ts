@@ -19,7 +19,7 @@ export interface WledCardConfig {
   show_live_override?: boolean;
   show_nightlight?: boolean;
   show_sync?: boolean;
-  show_reverse_mirror?: boolean;
+  show_reverse_freeze?: boolean;
 }
 
 export const DEFAULT_CONFIG: Partial<WledCardConfig> = {
@@ -36,7 +36,7 @@ export const DEFAULT_CONFIG: Partial<WledCardConfig> = {
   show_live_override: true,
   show_nightlight: true,
   show_sync: true,
-  show_reverse_mirror: true,
+  show_reverse_freeze: true,
 };
 
 export interface SegmentEntities {
@@ -46,7 +46,7 @@ export interface SegmentEntities {
   speed?: string;
   intensity?: string;
   reverse?: string;
-  mirror?: string;
+  freeze?: string;
 }
 
 export interface WledEntities {
