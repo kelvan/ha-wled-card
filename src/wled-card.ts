@@ -369,7 +369,7 @@ export class HaWledCard extends LitElement {
     .color-input {
       width: 36px;
       height: 36px;
-      border: none;
+      border: 2px solid var(--divider-color);
       border-radius: 50%;
       overflow: hidden;
       padding: 0;
