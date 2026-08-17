@@ -376,6 +376,17 @@ export class HaWledCard extends LitElement {
       background: none;
       cursor: pointer;
     }
+    .color-input::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    .color-input::-webkit-color-swatch {
+      border: none;
+      border-radius: 50%;
+    }
+    .color-input::-moz-color-swatch {
+      border: none;
+      border-radius: 50%;
+    }
     .tabs {
       display: flex;
       gap: 4px;
