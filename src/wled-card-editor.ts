@@ -12,6 +12,7 @@ const SCHEMA = [
     name: "visibility",
     type: "expandable",
     title: "Visible sections",
+    flatten: true,
     schema: [
       { name: "show_header", selector: { boolean: {} } },
       { name: "show_power", selector: { boolean: {} } },
