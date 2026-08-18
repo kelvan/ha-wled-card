@@ -1,8 +1,9 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
 
 permissions:
   contents: write
@@ -20,3 +21,4 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/ha-wled-card.js
+          generate_release_notes: true
